@@ -39,9 +39,9 @@
         </c:forEach>
     </select>
     <label>Giá từ</label>
-    <input type="number" name="giaTu" min="0" value="${param.giaTu}">
+    <input type="number" name="giaTu" min="0" step="100000" value="${param.giaTu}">
     <label>Giá đến</label>
-    <input type="number" name="giaDen" min="0" value="${param.giaDen}">
+    <input type="number" name="giaDen" min="0" step="100000" value="${param.giaDen}">
     <%-- TODO(TV2 - DISCUSS): "Tình trạng" là PHONG.trangThai HIỆN TẠI, không đồng nghĩa với
          "trống trong khoảng ngày đang tìm". VD phòng DA_DAT cho 01/10-03/10 vẫn đặt được 05/10-07/10
          nhưng sẽ bị ẩn nếu lọc TRONG. Giữ requirement đã chốt, cần nhóm xác nhận lại. --%>
@@ -49,12 +49,23 @@
     <select name="trangThaiPhong">
         <option value="">-- Tất cả --</option>
         <c:forEach var="tt" items="${trangThaiPhongs}">
-            <option value="${tt}" ${tt == param.trangThaiPhong ? 'selected' : ''}>${tt}</option>
+            <option value="${tt}" ${tt == param.trangThaiPhong ? 'selected' : ''}>
+                <c:choose>
+                    <c:when test="${tt == 'TRONG'}">Trống</c:when>
+                    <c:when test="${tt == 'DA_DAT'}">Đã đặt</c:when>
+                    <c:otherwise>${tt}</c:otherwise>
+                </c:choose>
+            </option>
         </c:forEach>
     </select>
     <br><br>
     <button type="submit">Kiểm tra phòng trống</button>
 </form>
+
+<%-- Đã bấm kiểm tra (có ngày, không lỗi) nhưng không còn phòng phù hợp --%>
+<c:if test="${not empty ngayNhan and not empty ngayTra and empty error and empty phongOptions}">
+    <div class="info">Không còn phòng trống phù hợp trong khoảng ngày đã chọn.</div>
+</c:if>
 
 <c:if test="${not empty phongOptions}">
     <div class="info">Chọn phòng cần đặt. Có thể chọn nhiều phòng.</div>
@@ -109,4 +120,5 @@
 </c:if>
 </body>
 </html>
+
 

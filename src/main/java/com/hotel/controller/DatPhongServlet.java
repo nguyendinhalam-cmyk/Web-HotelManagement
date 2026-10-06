@@ -181,7 +181,7 @@ public class DatPhongServlet extends HttpServlet {
         // Đổ dữ liệu tĩnh vào các dropdown trên giao diện
         request.setAttribute("khachHangs", khachHangService.findAll());
         request.setAttribute("loaiPhongs", loaiPhongService.findAll());
-        request.setAttribute("trangThaiPhongs", TrangThaiPhong.values());
+        request.setAttribute("trangThaiPhongs", List.of(TrangThaiPhong.TRONG, TrangThaiPhong.DA_DAT));
 
         String ngayNhanParam = request.getParameter("ngayNhan");
         String ngayTraParam = request.getParameter("ngayTra");
