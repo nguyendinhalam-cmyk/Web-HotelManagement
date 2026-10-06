@@ -19,7 +19,7 @@ public class DataSourceConfig {
         ));
 
         config.setUsername(getConfig("DB_USERNAME", "root"));
-        config.setPassword(getConfig("DB_PASSWORD", "123456"));
+        config.setPassword(getConfig("DB_PASSWORD", "123123"));
 
         config.setDriverClassName("com.mysql.cj.jdbc.Driver");
 
