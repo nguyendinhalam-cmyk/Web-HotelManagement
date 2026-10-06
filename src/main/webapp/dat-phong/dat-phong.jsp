@@ -29,6 +29,29 @@
     <input type="date" name="ngayNhan" value="${ngayNhan}" required>
     <label>Ngày trả</label>
     <input type="date" name="ngayTra" value="${ngayTra}" required>
+
+    <%-- TV2 – Câu 2: lọc loại phòng, giá, tình trạng (để trống = không lọc) --%>
+    <label>Loại phòng</label>
+    <select name="maLoaiPhong">
+        <option value="">-- Tất cả --</option>
+        <c:forEach var="lp" items="${loaiPhongs}">
+            <option value="${lp.maLoaiPhong}" ${lp.maLoaiPhong == param.maLoaiPhong ? 'selected' : ''}>${lp.tenLoaiPhong}</option>
+        </c:forEach>
+    </select>
+    <label>Giá từ</label>
+    <input type="number" name="giaTu" min="0" value="${param.giaTu}">
+    <label>Giá đến</label>
+    <input type="number" name="giaDen" min="0" value="${param.giaDen}">
+    <%-- TODO(TV2 - DISCUSS): "Tình trạng" là PHONG.trangThai HIỆN TẠI, không đồng nghĩa với
+         "trống trong khoảng ngày đang tìm". VD phòng DA_DAT cho 01/10-03/10 vẫn đặt được 05/10-07/10
+         nhưng sẽ bị ẩn nếu lọc TRONG. Giữ requirement đã chốt, cần nhóm xác nhận lại. --%>
+    <label>Tình trạng phòng hiện tại</label>
+    <select name="trangThaiPhong">
+        <option value="">-- Tất cả --</option>
+        <c:forEach var="tt" items="${trangThaiPhongs}">
+            <option value="${tt}" ${tt == param.trangThaiPhong ? 'selected' : ''}>${tt}</option>
+        </c:forEach>
+    </select>
     <br><br>
     <button type="submit">Kiểm tra phòng trống</button>
 </form>
@@ -46,11 +69,20 @@
 
         <input type="hidden" name="ngayNhan" value="${ngayNhan}">
         <input type="hidden" name="ngayTra" value="${ngayTra}">
+        <%-- Giữ bộ lọc để nếu lưu lỗi, danh sách phòng hiển thị lại đúng như trước --%>
+        <input type="hidden" name="maLoaiPhong" value="${param.maLoaiPhong}">
+        <input type="hidden" name="giaTu" value="${param.giaTu}">
+        <input type="hidden" name="giaDen" value="${param.giaDen}">
+        <input type="hidden" name="trangThaiPhong" value="${param.trangThaiPhong}">
+
+        <%-- TV2 – Câu 7: chỉ để kiểm tra sức chứa, không lưu vào DB --%>
+        <label>Số lượng khách</label>
+        <input type="number" name="soLuongKhach" min="1" value="${param.soLuongKhach}" required>
 
         <table>
             <thead>
             <tr>
-                <th>Chọn</th><th>Phòng</th><th>Loại</th><th>Giá cơ bản</th>
+                <th>Chọn</th><th>Phòng</th><th>Loại</th><th>Sức chứa</th><th>Giá cơ bản</th>
                 <th>Ngày nhận</th><th>Ngày trả</th>
             </tr>
             </thead>
@@ -60,6 +92,7 @@
                     <td><input type="checkbox" name="maPhong" value="${p.maPhong}"></td>
                     <td>${p.soPhong}</td>
                     <td>${p.tenLoaiPhong}</td>
+                    <td>${p.soNguoiToiDa} người</td>
                     <td>${p.giaCoBan}</td>
                     <td>${ngayNhan}</td>
                     <td>${ngayTra}</td>
@@ -69,10 +102,11 @@
         </table>
 
         <label>Ghi chú</label>
-        <textarea name="ghiChu" rows="3" style="width:100%;"></textarea>
+        <textarea name="ghiChu" rows="3" maxlength="500" style="width:100%;"></textarea>
         <br><br>
         <button type="submit">Tạo đặt phòng</button>
     </form>
 </c:if>
 </body>
 </html>
+
