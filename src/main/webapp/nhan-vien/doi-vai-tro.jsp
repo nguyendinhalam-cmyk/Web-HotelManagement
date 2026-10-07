@@ -1,0 +1,4 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %><%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Đổi vai trò</title></head><body>
+<a href="${pageContext.request.contextPath}/logout">Đăng xuất</a><h2>Đổi vai trò</h2><p>${item.maNV} - ${item.hoTen}</p>
+<form method="post" action="${pageContext.request.contextPath}/nhan-vien"><input type="hidden" name="action" value="role"><input type="hidden" name="maNV" value="${item.maNV}"><select name="vaiTro" required><c:forEach var="v" items="${vaiTros}"><option value="${v}" ${item.taiKhoan.vaiTro == v ? 'selected' : ''}>${v}</option></c:forEach></select><button type="submit">Lưu</button></form><p><a href="${pageContext.request.contextPath}/nhan-vien?action=list">Quay lại</a></p></body></html>
