@@ -30,8 +30,9 @@
     <label>Ngày trả</label>
     <input type="date" name="ngayTra" value="${ngayTra}" required>
 
-    <%-- TV2 – Câu 2: lọc loại phòng, giá (để trống = không lọc).
-         Không lọc theo tình trạng phòng hiện tại vì danh sách đã là phòng trống theo ngày. --%>
+    <%-- TV2 – Câu 2: chỉ lọc theo loại phòng (để trống = không lọc).
+         Không lọc theo tình trạng phòng hiện tại vì danh sách đã là phòng trống theo ngày.
+         Không lọc theo giá vì mỗi loại phòng chỉ có một giá (xem cột Giá cơ bản). --%>
     <label>Loại phòng</label>
     <select name="maLoaiPhong">
         <option value="">-- Tất cả --</option>
@@ -39,10 +40,6 @@
             <option value="${lp.maLoaiPhong}" ${lp.maLoaiPhong == param.maLoaiPhong ? 'selected' : ''}>${lp.tenLoaiPhong}</option>
         </c:forEach>
     </select>
-    <label>Giá từ</label>
-    <input type="number" name="giaTu" min="0" step="100000" value="${param.giaTu}">
-    <label>Giá đến</label>
-    <input type="number" name="giaDen" min="0" step="100000" value="${param.giaDen}">
     <br><br>
     <button type="submit">Kiểm tra phòng trống</button>
 </form>
@@ -67,8 +64,6 @@
         <input type="hidden" name="ngayTra" value="${ngayTra}">
         <%-- Giữ bộ lọc để nếu lưu lỗi, danh sách phòng hiển thị lại đúng như trước --%>
         <input type="hidden" name="maLoaiPhong" value="${param.maLoaiPhong}">
-        <input type="hidden" name="giaTu" value="${param.giaTu}">
-        <input type="hidden" name="giaDen" value="${param.giaDen}">
 
         <%-- TV2 – Câu 7: chỉ để kiểm tra sức chứa, không lưu vào DB --%>
         <label>Số lượng khách</label>

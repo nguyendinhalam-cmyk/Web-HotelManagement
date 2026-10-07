@@ -29,7 +29,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -195,12 +194,10 @@ public class DatPhongServlet extends HttpServlet {
 
                 // Lấy các tham số lọc bổ sung (loại phòng, khoảng giá, tình trạng hiện tại của phòng)
                 String maLoaiPhong = trimToNull(request.getParameter("maLoaiPhong"));
-                BigDecimal giaTu = parseGia(request.getParameter("giaTu"));
-                BigDecimal giaDen = parseGia(request.getParameter("giaDen"));
 
                 // Tìm phòng không bị trùng lịch VÀ thỏa mãn các tiêu chí lọc
                 request.setAttribute("phongOptions", phongService.findPhongCoTheDat(
-                                ngayNhan, ngayTra, maLoaiPhong, giaTu, giaDen, null)
+                                ngayNhan, ngayTra, maLoaiPhong, null, null, null)
                         .stream()
                         .map(p -> {
                             PhongOptionDTO option = new PhongOptionDTO(
@@ -340,13 +337,4 @@ public class DatPhongServlet extends HttpServlet {
         return notBlank(value) ? value.trim() : null;
     }
 
-    // Parse chuỗi giá tiền sang BigDecimal an toàn
-    private BigDecimal parseGia(String value) {
-        if (!notBlank(value)) return null;
-        try {
-            return new BigDecimal(value.trim());
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Giá lọc phải là số.");
-        }
-    }
 }
