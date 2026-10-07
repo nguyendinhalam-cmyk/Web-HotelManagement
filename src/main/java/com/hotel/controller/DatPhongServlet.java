@@ -13,7 +13,6 @@ import com.hotel.entity.Phong;
 
 // 3. Nhóm Enum: Định nghĩa tập hợp các giá trị trạng thái cố định
 import com.hotel.enums.TrangThaiDatPhong;
-import com.hotel.enums.TrangThaiPhong;
 
 // 4. Nhóm Service: Tầng nghiệp vụ xử lý logic và quản lý transaction
 import com.hotel.service.DatPhongService;
@@ -181,7 +180,6 @@ public class DatPhongServlet extends HttpServlet {
         // Đổ dữ liệu tĩnh vào các dropdown trên giao diện
         request.setAttribute("khachHangs", khachHangService.findAll());
         request.setAttribute("loaiPhongs", loaiPhongService.findAll());
-        request.setAttribute("trangThaiPhongs", List.of(TrangThaiPhong.TRONG, TrangThaiPhong.DA_DAT));
 
         String ngayNhanParam = request.getParameter("ngayNhan");
         String ngayTraParam = request.getParameter("ngayTra");
@@ -199,17 +197,10 @@ public class DatPhongServlet extends HttpServlet {
                 String maLoaiPhong = trimToNull(request.getParameter("maLoaiPhong"));
                 BigDecimal giaTu = parseGia(request.getParameter("giaTu"));
                 BigDecimal giaDen = parseGia(request.getParameter("giaDen"));
-                String trangThaiParam = trimToNull(request.getParameter("trangThaiPhong"));
-                TrangThaiPhong trangThaiPhong;
-                try {
-                    trangThaiPhong = trangThaiParam == null ? null : TrangThaiPhong.valueOf(trangThaiParam);
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalArgumentException("Tình trạng phòng không hợp lệ.");
-                }
 
                 // Tìm phòng không bị trùng lịch VÀ thỏa mãn các tiêu chí lọc
                 request.setAttribute("phongOptions", phongService.findPhongCoTheDat(
-                                ngayNhan, ngayTra, maLoaiPhong, giaTu, giaDen, trangThaiPhong)
+                                ngayNhan, ngayTra, maLoaiPhong, giaTu, giaDen, null)
                         .stream()
                         .map(p -> {
                             PhongOptionDTO option = new PhongOptionDTO(

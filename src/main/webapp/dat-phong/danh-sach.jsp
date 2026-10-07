@@ -30,7 +30,16 @@
     <select name="trangThai">
         <option value="">-- Mọi trạng thái --</option>
         <c:forEach var="tt" items="${trangThais}">
-            <option value="${tt}" ${tt == param.trangThai ? 'selected' : ''}>${tt}</option>
+            <option value="${tt}" ${tt == param.trangThai ? 'selected' : ''}>
+                <c:choose>
+                    <c:when test="${tt == 'CHO_XAC_NHAN'}">Chờ xác nhận</c:when>
+                    <c:when test="${tt == 'DA_XAC_NHAN'}">Đã xác nhận</c:when>
+                    <c:when test="${tt == 'DANG_O'}">Đang ở</c:when>
+                    <c:when test="${tt == 'DA_TRA_PHONG'}">Đã trả phòng</c:when>
+                    <c:when test="${tt == 'DA_HUY'}">Đã hủy</c:when>
+                    <c:otherwise>${tt}</c:otherwise>
+                </c:choose>
+            </option>
         </c:forEach>
     </select>
     Ngày nhận từ <input type="date" name="tuNgay" value="${param.tuNgay}">
@@ -51,7 +60,18 @@
             <td>${item.maDatPhong}</td>
             <td>${item.maKH} - ${item.tenKhachHang}</td>
             <td>${item.ngayDat}</td>
-            <td>${item.trangThai}</td>
+            <%-- Hiển thị tiếng Việt; giá trị enum giữ nguyên --%>
+            <td>
+                <c:set var="tt" value="${item.trangThai}"/>
+                <c:choose>
+                    <c:when test="${tt == 'CHO_XAC_NHAN'}">Chờ xác nhận</c:when>
+                    <c:when test="${tt == 'DA_XAC_NHAN'}">Đã xác nhận</c:when>
+                    <c:when test="${tt == 'DANG_O'}">Đang ở</c:when>
+                    <c:when test="${tt == 'DA_TRA_PHONG'}">Đã trả phòng</c:when>
+                    <c:when test="${tt == 'DA_HUY'}">Đã hủy</c:when>
+                    <c:otherwise>${tt}</c:otherwise>
+                </c:choose>
+            </td>
             <td>${item.ghiChu}</td>
             <td>
                 <a href="${pageContext.request.contextPath}/dat-phong?action=detail&ma=${item.maDatPhong}">Chi tiết</a>
@@ -79,3 +99,4 @@
 </table>
 </body>
 </html>
+

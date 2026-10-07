@@ -30,7 +30,8 @@
     <label>Ngày trả</label>
     <input type="date" name="ngayTra" value="${ngayTra}" required>
 
-    <%-- TV2 – Câu 2: lọc loại phòng, giá, tình trạng (để trống = không lọc) --%>
+    <%-- TV2 – Câu 2: lọc loại phòng, giá (để trống = không lọc).
+         Không lọc theo tình trạng phòng hiện tại vì danh sách đã là phòng trống theo ngày. --%>
     <label>Loại phòng</label>
     <select name="maLoaiPhong">
         <option value="">-- Tất cả --</option>
@@ -42,22 +43,6 @@
     <input type="number" name="giaTu" min="0" step="100000" value="${param.giaTu}">
     <label>Giá đến</label>
     <input type="number" name="giaDen" min="0" step="100000" value="${param.giaDen}">
-    <%-- TODO(TV2 - DISCUSS): "Tình trạng" là PHONG.trangThai HIỆN TẠI, không đồng nghĩa với
-         "trống trong khoảng ngày đang tìm". VD phòng DA_DAT cho 01/10-03/10 vẫn đặt được 05/10-07/10
-         nhưng sẽ bị ẩn nếu lọc TRONG. Giữ requirement đã chốt, cần nhóm xác nhận lại. --%>
-    <label>Tình trạng phòng hiện tại</label>
-    <select name="trangThaiPhong">
-        <option value="">-- Tất cả --</option>
-        <c:forEach var="tt" items="${trangThaiPhongs}">
-            <option value="${tt}" ${tt == param.trangThaiPhong ? 'selected' : ''}>
-                <c:choose>
-                    <c:when test="${tt == 'TRONG'}">Trống</c:when>
-                    <c:when test="${tt == 'DA_DAT'}">Đã đặt</c:when>
-                    <c:otherwise>${tt}</c:otherwise>
-                </c:choose>
-            </option>
-        </c:forEach>
-    </select>
     <br><br>
     <button type="submit">Kiểm tra phòng trống</button>
 </form>
@@ -84,7 +69,6 @@
         <input type="hidden" name="maLoaiPhong" value="${param.maLoaiPhong}">
         <input type="hidden" name="giaTu" value="${param.giaTu}">
         <input type="hidden" name="giaDen" value="${param.giaDen}">
-        <input type="hidden" name="trangThaiPhong" value="${param.trangThaiPhong}">
 
         <%-- TV2 – Câu 7: chỉ để kiểm tra sức chứa, không lưu vào DB --%>
         <label>Số lượng khách</label>
@@ -120,5 +104,6 @@
 </c:if>
 </body>
 </html>
+
 
 

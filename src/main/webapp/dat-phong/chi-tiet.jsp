@@ -21,7 +21,20 @@
     <tr><th>Mã đặt phòng</th><td>${item.maDatPhong}</td></tr>
     <tr><th>Khách hàng</th><td>${item.khachHang.maKH} - ${item.khachHang.hoTen} - ${item.khachHang.soDienThoai}</td></tr>
     <tr><th>Ngày đặt</th><td>${item.ngayDat}</td></tr>
-    <tr><th>Trạng thái</th><td>${item.trangThai}</td></tr>
+    <tr><th>Trạng thái</th>
+        <td>
+            <%-- Hiển thị tiếng Việt; giá trị enum giữ nguyên --%>
+            <c:set var="tt" value="${item.trangThai}"/>
+            <c:choose>
+                <c:when test="${tt == 'CHO_XAC_NHAN'}">Chờ xác nhận</c:when>
+                <c:when test="${tt == 'DA_XAC_NHAN'}">Đã xác nhận</c:when>
+                <c:when test="${tt == 'DANG_O'}">Đang ở</c:when>
+                <c:when test="${tt == 'DA_TRA_PHONG'}">Đã trả phòng</c:when>
+                <c:when test="${tt == 'DA_HUY'}">Đã hủy</c:when>
+                <c:otherwise>${tt}</c:otherwise>
+            </c:choose>
+        </td>
+    </tr>
     <tr><th>Ghi chú</th><td>${item.ghiChu}</td></tr>
 </table>
 
@@ -51,3 +64,4 @@
 </table>
 </body>
 </html>
+
