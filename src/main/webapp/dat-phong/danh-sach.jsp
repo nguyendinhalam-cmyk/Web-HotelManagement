@@ -23,6 +23,32 @@
 <c:if test="${not empty success}"><div class="success">Thao tác thành công.</div></c:if>
 <c:if test="${not empty error}"><div class="error">${error}</div></c:if>
 
+<%-- TV2 – Câu 11: tra cứu. Để trống tất cả = danh sách đầy đủ như trước --%>
+<form method="get" action="${pageContext.request.contextPath}/dat-phong" style="margin-top:15px;">
+    <input type="hidden" name="action" value="list">
+    <input type="text" name="maDatPhong" value="${param.maDatPhong}" placeholder="Mã đặt phòng">
+    <input type="text" name="khachHang" value="${param.khachHang}" placeholder="Tên khách hoặc SĐT">
+    <select name="trangThai">
+        <option value="">-- Mọi trạng thái --</option>
+        <c:forEach var="tt" items="${trangThais}">
+            <option value="${tt}" ${tt == param.trangThai ? 'selected' : ''}>
+                <c:choose>
+                    <c:when test="${tt == 'CHO_XAC_NHAN'}">Chờ xác nhận</c:when>
+                    <c:when test="${tt == 'DA_XAC_NHAN'}">Đã xác nhận</c:when>
+                    <c:when test="${tt == 'DANG_O'}">Đang ở</c:when>
+                    <c:when test="${tt == 'DA_TRA_PHONG'}">Đã trả phòng</c:when>
+                    <c:when test="${tt == 'DA_HUY'}">Đã hủy</c:when>
+                    <c:otherwise>${tt}</c:otherwise>
+                </c:choose>
+            </option>
+        </c:forEach>
+    </select>
+    Ngày nhận từ <input type="date" name="tuNgay" value="${param.tuNgay}">
+    đến <input type="date" name="denNgay" value="${param.denNgay}">
+    <button type="submit">Tra cứu</button>
+    <a href="${pageContext.request.contextPath}/dat-phong?action=list">Bỏ lọc</a>
+</form>
+
 <table>
     <thead>
     <tr>
@@ -36,9 +62,21 @@
             <td>${item.maKH} - ${item.tenKhachHang}</td>
             <td>${item.maNVXuLy}</td>
             <td>${item.ngayDat}</td>
-            <td>${item.trangThai}</td>
+            <%-- Hiển thị tiếng Việt; giá trị enum giữ nguyên --%>
+            <td>
+                <c:set var="tt" value="${item.trangThai}"/>
+                <c:choose>
+                    <c:when test="${tt == 'CHO_XAC_NHAN'}">Chờ xác nhận</c:when>
+                    <c:when test="${tt == 'DA_XAC_NHAN'}">Đã xác nhận</c:when>
+                    <c:when test="${tt == 'DANG_O'}">Đang ở</c:when>
+                    <c:when test="${tt == 'DA_TRA_PHONG'}">Đã trả phòng</c:when>
+                    <c:when test="${tt == 'DA_HUY'}">Đã hủy</c:when>
+                    <c:otherwise>${tt}</c:otherwise>
+                </c:choose>
+            </td>
             <td>${item.ghiChu}</td>
             <td>
+                <a href="${pageContext.request.contextPath}/dat-phong?action=detail&ma=${item.maDatPhong}">Chi tiết</a>
                 <c:if test="${item.trangThai == 'CHO_XAC_NHAN'}">
                     <a href="${pageContext.request.contextPath}/dat-phong?action=confirm&ma=${item.maDatPhong}">Xác nhận</a>
                     <a href="${pageContext.request.contextPath}/dat-phong?action=cancel&ma=${item.maDatPhong}">Hủy</a>
@@ -63,3 +101,4 @@
 </table>
 </body>
 </html>
+

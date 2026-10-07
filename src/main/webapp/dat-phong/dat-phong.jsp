@@ -30,9 +30,25 @@
     <input type="date" name="ngayNhan" value="${ngayNhan}" required>
     <label>Ngày trả</label>
     <input type="date" name="ngayTra" value="${ngayTra}" required>
+
+    <%-- TV2 – Câu 2: chỉ lọc theo loại phòng (để trống = không lọc).
+         Không lọc theo tình trạng phòng hiện tại vì danh sách đã là phòng trống theo ngày.
+         Không lọc theo giá vì mỗi loại phòng chỉ có một giá (xem cột Giá cơ bản). --%>
+    <label>Loại phòng</label>
+    <select name="maLoaiPhong">
+        <option value="">-- Tất cả --</option>
+        <c:forEach var="lp" items="${loaiPhongs}">
+            <option value="${lp.maLoaiPhong}" ${lp.maLoaiPhong == param.maLoaiPhong ? 'selected' : ''}>${lp.tenLoaiPhong}</option>
+        </c:forEach>
+    </select>
     <br><br>
     <button type="submit">Kiểm tra phòng trống</button>
 </form>
+
+<%-- Đã bấm kiểm tra (có ngày, không lỗi) nhưng không còn phòng phù hợp --%>
+<c:if test="${not empty ngayNhan and not empty ngayTra and empty error and empty phongOptions}">
+    <div class="info">Không còn phòng trống phù hợp trong khoảng ngày đã chọn.</div>
+</c:if>
 
 <c:if test="${not empty phongOptions}">
     <div class="info">Chọn phòng cần đặt. Có thể chọn nhiều phòng.</div>
@@ -47,11 +63,17 @@
 
         <input type="hidden" name="ngayNhan" value="${ngayNhan}">
         <input type="hidden" name="ngayTra" value="${ngayTra}">
+        <%-- Giữ bộ lọc để nếu lưu lỗi, danh sách phòng hiển thị lại đúng như trước --%>
+        <input type="hidden" name="maLoaiPhong" value="${param.maLoaiPhong}">
+
+        <%-- TV2 – Câu 7: chỉ để kiểm tra sức chứa, không lưu vào DB --%>
+        <label>Số lượng khách</label>
+        <input type="number" name="soLuongKhach" min="1" value="${param.soLuongKhach}" required>
 
         <table>
             <thead>
             <tr>
-                <th>Chọn</th><th>Phòng</th><th>Loại</th><th>Giá cơ bản</th>
+                <th>Chọn</th><th>Phòng</th><th>Loại</th><th>Sức chứa</th><th>Giá cơ bản</th>
                 <th>Ngày nhận</th><th>Ngày trả</th>
             </tr>
             </thead>
@@ -61,6 +83,7 @@
                     <td><input type="checkbox" name="maPhong" value="${p.maPhong}"></td>
                     <td>${p.soPhong}</td>
                     <td>${p.tenLoaiPhong}</td>
+                    <td>${p.soNguoiToiDa} người</td>
                     <td>${p.giaCoBan}</td>
                     <td>${ngayNhan}</td>
                     <td>${ngayTra}</td>
@@ -70,10 +93,13 @@
         </table>
 
         <label>Ghi chú</label>
-        <textarea name="ghiChu" rows="3" style="width:100%;"></textarea>
+        <textarea name="ghiChu" rows="3" maxlength="500" style="width:100%;"></textarea>
         <br><br>
         <button type="submit">Tạo đặt phòng</button>
     </form>
 </c:if>
 </body>
 </html>
+
+
+
