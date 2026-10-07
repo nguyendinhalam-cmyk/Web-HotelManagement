@@ -26,6 +26,21 @@ public class DatPhong {
     @JoinColumn(name = "maKH", nullable = false)
     private KhachHang khachHang;
 
+    /** Nhân viên tiếp nhận/xử lý đặt phòng tại quầy/điện thoại. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maNVXuLy", nullable = false)
+    private NhanVien nhanVienXuLy;
+
+    /** Nhân viên thực hiện check-in. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maNVCheckIn")
+    private NhanVien nhanVienCheckIn;
+
+    /** Nhân viên thực hiện check-out. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "maNVCheckOut")
+    private NhanVien nhanVienCheckOut;
+
     @Column(name = "ghiChu", length = 255)
     private String ghiChu;
 
@@ -75,6 +90,15 @@ public class DatPhong {
     public void setKhachHang(KhachHang khachHang) {
         this.khachHang = khachHang;
     }
+
+    public NhanVien getNhanVienXuLy() { return nhanVienXuLy; }
+    public void setNhanVienXuLy(NhanVien nhanVienXuLy) { this.nhanVienXuLy = nhanVienXuLy; }
+
+    public NhanVien getNhanVienCheckIn() { return nhanVienCheckIn; }
+    public void setNhanVienCheckIn(NhanVien nhanVienCheckIn) { this.nhanVienCheckIn = nhanVienCheckIn; }
+
+    public NhanVien getNhanVienCheckOut() { return nhanVienCheckOut; }
+    public void setNhanVienCheckOut(NhanVien nhanVienCheckOut) { this.nhanVienCheckOut = nhanVienCheckOut; }
 
     public String getGhiChu() {
         return ghiChu;

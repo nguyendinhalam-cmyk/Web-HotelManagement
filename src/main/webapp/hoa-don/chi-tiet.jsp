@@ -18,6 +18,7 @@
     </style>
 </head>
 <body>
+<a href="${pageContext.request.contextPath}/logout">Đăng xuất</a>
 <h1>Chi tiết hóa đơn</h1>
 <a href="${pageContext.request.contextPath}/hoa-don?action=list">← Danh sách hóa đơn</a>
 <a href="${pageContext.request.contextPath}/dat-phong?action=list">Đặt phòng</a>

@@ -20,6 +20,7 @@
 
         <class>com.hotel.entity.KhachHang</class>
         <class>com.hotel.entity.NhanVien</class>
+        <class>com.hotel.entity.TaiKhoan</class>
         <class>com.hotel.entity.LoaiPhong</class>
         <class>com.hotel.entity.Phong</class>
         <class>com.hotel.entity.DatPhong</class>

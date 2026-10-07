@@ -28,6 +28,7 @@ public class ThanhToanService {
             DatPhong dp=datPhongDAO.findById(em,x.getDatPhong().getMaDatPhong());
             if(dp==null)throw new IllegalArgumentException("Không tìm thấy đặt phòng: "+x.getDatPhong().getMaDatPhong());
             if(dp.getTrangThai()==TrangThaiDatPhong.DA_HUY)throw new IllegalStateException("Không thể thanh toán cho đặt phòng đã hủy.");
+            if(dp.getTrangThai()==TrangThaiDatPhong.CHO_XAC_NHAN)throw new IllegalStateException("Chỉ thanh toán khi đặt phòng đã được xác nhận hoặc khách đang/trả phòng.");
             x.setDatPhong(dp); if(x.getThoiGianTao()==null)x.setThoiGianTao(LocalDateTime.now()); if(x.getTrangThai()==null)x.setTrangThai(TrangThaiThanhToan.CHO_THANH_TOAN);
             dao.save(em,x);tm.commit();
         }catch(Exception e){tm.rollback();throw e;}finally{tm.close();}

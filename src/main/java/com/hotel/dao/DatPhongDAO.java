@@ -49,6 +49,9 @@ public class DatPhongDAO extends BaseDAO<DatPhong, String> {
                 SELECT d
                 FROM DatPhong d
                 JOIN FETCH d.khachHang
+                JOIN FETCH d.nhanVienXuLy
+                LEFT JOIN FETCH d.nhanVienCheckIn
+                LEFT JOIN FETCH d.nhanVienCheckOut
                 ORDER BY d.ngayDat DESC
                 """;
         return em.createQuery(jpql, DatPhong.class).getResultList();

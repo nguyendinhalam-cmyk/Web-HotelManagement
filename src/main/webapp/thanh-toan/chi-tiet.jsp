@@ -4,6 +4,7 @@
 <html lang="vi">
 <head><meta charset="UTF-8"><title>Chi tiết thanh toán</title></head>
 <body>
+<a href="${pageContext.request.contextPath}/logout">Đăng xuất</a>
 <h1>Chi tiết thanh toán</h1>
 <c:if test="${not empty error}"><p style="color:#b00020">${error}</p></c:if>
 <c:if test="${not empty item}">

@@ -2,8 +2,9 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
 <html lang="vi">
-<head><meta charset="UTF-8"><title>Tạo thanh toán</title></head>
+<head><meta charset="UTF-8"><title>Thanh toán tại quầy - Tạo thanh toán</title></head>
 <body>
+<a href="${pageContext.request.contextPath}/logout">Đăng xuất</a>
 <h1>Tạo thanh toán</h1>
 <c:if test="${not empty error}"><p style="color:#b00020">${error}</p></c:if>
 <form method="post" action="${pageContext.request.contextPath}/thanh-toan">

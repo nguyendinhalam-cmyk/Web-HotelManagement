@@ -5,6 +5,7 @@ import com.hotel.dao.CtDatPhongDAO;
 import com.hotel.dao.CtHoaDonDAO;
 import com.hotel.dao.DatPhongDAO;
 import com.hotel.dao.HoaDonDAO;
+import com.hotel.dao.NhanVienDAO;
 import com.hotel.dao.PhongDAO;
 import com.hotel.dao.SuDungDichVuDAO;
 import com.hotel.entity.CtDatPhong;
@@ -36,8 +37,9 @@ public class CheckoutService {
     private final SuDungDichVuDAO suDungDichVuDAO = new SuDungDichVuDAO();
     private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
     private final CtHoaDonDAO ctHoaDonDAO = new CtHoaDonDAO();
+    private final NhanVienDAO nhanVienDAO = new NhanVienDAO();
 
-    public HoaDon checkout(String maDatPhong) {
+    public HoaDon checkout(String maDatPhong, String maNVCheckOut) {
         TransactionManager tm = new TransactionManager();
         try {
             tm.begin();
@@ -46,13 +48,16 @@ public class CheckoutService {
             if (datPhong == null) throw new IllegalArgumentException("Không tìm thấy đặt phòng: " + maDatPhong);
             if (datPhong.getTrangThai() != TrangThaiDatPhong.DANG_O) throw new IllegalStateException("Chỉ được checkout khi đặt phòng ở trạng thái DANG_O.");
 
+            com.hotel.entity.NhanVien nhanVien = nhanVienDAO.findById(em, maNVCheckOut);
+            if (nhanVien == null) throw new IllegalArgumentException("Không tìm thấy nhân viên check-out: " + maNVCheckOut);
+
             List<CtDatPhong> chiTietPhong = ctDatPhongDAO.findByDatPhong(em, maDatPhong);
             if (chiTietPhong.isEmpty()) throw new IllegalStateException("Đặt phòng không có chi tiết phòng.");
             List<SuDungDichVu> dichVu = suDungDichVuDAO.findByDatPhong(em, maDatPhong);
 
             BigDecimal tongTienPhong = BigDecimal.ZERO;
             BigDecimal tongTienDichVu = BigDecimal.ZERO;
-            List<CtHoaDon> chiTietHoaDon = new ArrayList<>();
+            List<CtHoaDon> chiTietMoi = new ArrayList<>();
 
             for (CtDatPhong ct : chiTietPhong) {
                 BigDecimal tien = tinhTienPhong(ct);
@@ -60,7 +65,7 @@ public class CheckoutService {
                 CtHoaDon line = new CtHoaDon();
                 line.setTenKhoanThu("Tiền phòng " + (ct.getPhong() == null ? "" : ct.getPhong().getSoPhong()));
                 line.setSoLuong(1); line.setDonGia(ct.getGiaPhong()); line.setThanhTien(tien);
-                chiTietHoaDon.add(line);
+                chiTietMoi.add(line);
             }
             for (SuDungDichVu sd : dichVu) {
                 BigDecimal tien = tinhTienDichVu(sd);
@@ -69,32 +74,55 @@ public class CheckoutService {
                 CtHoaDon line = new CtHoaDon();
                 line.setTenKhoanThu(dv == null ? "Dịch vụ" : dv.getTenDichVu());
                 line.setSoLuong(sd.getSoLuong()); line.setDonGia(sd.getDonGia()); line.setThanhTien(tien);
-                chiTietHoaDon.add(line);
+                chiTietMoi.add(line);
             }
 
-            HoaDon hoaDon = new HoaDon();
-            hoaDon.setMaHoaDon(MaCodeGenerator.nextId(hoaDonDAO.findAll(em), "maHoaDon", "HD"));
-            hoaDon.setDatPhong(datPhong); hoaDon.setNgayLap(LocalDateTime.now());
-            hoaDon.setTongTienPhong(tongTienPhong); hoaDon.setTongTienDichVu(tongTienDichVu);
-            hoaDon.setTongTien(tongTienPhong.add(tongTienDichVu)); hoaDon.setTrangThai(TrangThaiHoaDon.NHAP);
-            hoaDonDAO.save(em, hoaDon);
+            List<HoaDon> hoaDons = hoaDonDAO.findByDatPhong(em, maDatPhong);
+            HoaDon hoaDon;
+            if (hoaDons.isEmpty()) {
+                hoaDon = new HoaDon();
+                hoaDon.setMaHoaDon(MaCodeGenerator.nextId(hoaDonDAO.findAll(em), "maHoaDon", "HD"));
+                hoaDon.setDatPhong(datPhong);
+                hoaDon.setNgayLap(LocalDateTime.now());
+                hoaDonDAO.save(em, hoaDon);
+            } else {
+                hoaDon = hoaDons.get(0);
+                // Một đặt phòng chỉ có một hóa đơn: làm mới chi tiết trước khi chốt.
+                for (CtHoaDon old : ctHoaDonDAO.findByHoaDon(em, hoaDon.getMaHoaDon())) {
+                    ctHoaDonDAO.delete(em, old);
+                }
+            }
+
+            hoaDon.setTongTienPhong(tongTienPhong);
+            hoaDon.setTongTienDichVu(tongTienDichVu);
+            hoaDon.setTongTien(tongTienPhong.add(tongTienDichVu));
+            hoaDon.setTrangThai(TrangThaiHoaDon.NHAP);
+            hoaDonDAO.update(em, hoaDon);
 
             Set<String> reserved = new HashSet<>();
-            for (CtHoaDon line : chiTietHoaDon) {
-                line.setMaCtHoaDon(MaCodeGenerator.nextId(ctHoaDonDAO.findAll(em), "maCtHoaDon", "CTHD", reserved));
-                reserved.add(line.getMaCtHoaDon()); line.setHoaDon(hoaDon); ctHoaDonDAO.save(em, line);
+            List<CtHoaDon> existing = ctHoaDonDAO.findAll(em);
+            for (CtHoaDon line : chiTietMoi) {
+                line.setMaCtHoaDon(MaCodeGenerator.nextId(existing, "maCtHoaDon", "CTHD", reserved));
+                reserved.add(line.getMaCtHoaDon());
+                line.setHoaDon(hoaDon);
+                ctHoaDonDAO.save(em, line);
             }
 
             for (CtDatPhong ct : chiTietPhong) {
                 Phong phong = ct.getPhong();
                 if (phong != null) { phong.setTrangThai(TrangThaiPhong.TRONG); phongDAO.update(em, phong); }
             }
+            datPhong.setNhanVienCheckOut(nhanVien);
             datPhong.setTrangThai(TrangThaiDatPhong.DA_TRA_PHONG);
             datPhongDAO.update(em, datPhong);
             tm.commit();
             return hoaDon;
         } catch (Exception e) { tm.rollback(); throw new RuntimeException("Checkout thất bại: " + e.getMessage(), e); }
         finally { tm.close(); }
+    }
+
+    public HoaDon checkout(String maDatPhong) {
+        throw new IllegalArgumentException("Check-out phải có nhân viên đăng nhập.");
     }
 
     private BigDecimal tinhTienPhong(CtDatPhong ct) {

@@ -31,9 +31,6 @@ public class KhachHang {
     @Column(name = "email", unique = true, length = 100)
     private String email;
 
-    @Column(name = "matKhauHash", nullable = false, length = 255)
-    private String matKhauHash;
-
     @Column(name = "diaChi", length = 255)
     private String diaChi;
 
@@ -89,14 +86,6 @@ public class KhachHang {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getMatKhauHash() {
-        return matKhauHash;
-    }
-
-    public void setMatKhauHash(String matKhauHash) {
-        this.matKhauHash = matKhauHash;
     }
 
     public String getDiaChi() {

@@ -4,6 +4,13 @@ import com.hotel.config.TransactionManager;
 import com.hotel.dao.CtDatPhongDAO;
 import com.hotel.dao.DatPhongDAO;
 import com.hotel.dao.PhongDAO;
+import com.hotel.dao.NhanVienDAO;
+import com.hotel.dao.HoaDonDAO;
+import com.hotel.dao.CtHoaDonDAO;
+import com.hotel.entity.NhanVien;
+import com.hotel.entity.HoaDon;
+import com.hotel.entity.CtHoaDon;
+import com.hotel.enums.TrangThaiHoaDon;
 import com.hotel.entity.CtDatPhong;
 import com.hotel.entity.DatPhong;
 import com.hotel.entity.Phong;
@@ -23,34 +30,44 @@ public class DatPhongService {
     private final DatPhongDAO datPhongDAO;
     private final CtDatPhongDAO ctDatPhongDAO;
     private final PhongDAO phongDAO;
+    // [master] Nhân viên xử lý + hóa đơn nháp
+    private final NhanVienDAO nhanVienDAO;
+    private final HoaDonDAO hoaDonDAO;
+    private final CtHoaDonDAO ctHoaDonDAO;
 
     public DatPhongService() {
         this.datPhongDAO = new DatPhongDAO();
         this.ctDatPhongDAO = new CtDatPhongDAO();
         this.phongDAO = new PhongDAO();
+        this.nhanVienDAO = new NhanVienDAO();
+        this.hoaDonDAO = new HoaDonDAO();
+        this.ctHoaDonDAO = new CtHoaDonDAO();
     }
 
     /**
-     * TẠO ĐẶT PHÒNG (Bản nạp chồng 2 tham số - overload)
-     * Giữ lại để tương thích ngược với các hàm test cũ (Integration test) không truyền số khách
-     */
-    public void datPhong(
-            DatPhong datPhong,
-            List<CtDatPhong> danhSachChiTiet) {
-        datPhong(datPhong, danhSachChiTiet, null);
-    }
-
-    /**
-     * NGHIỆP VỤ 2 CỐT LÕI CỦA TV2: TẠO ĐẶT PHÒNG
-     * Có quản lý Transaction (ACID) và kiểm tra sức chứa phòng theo số lượng khách
+     * TẠO ĐẶT PHÒNG (Bản nạp chồng 3 tham số - giữ đúng chữ ký của nhóm trưởng trên master)
+     * Không truyền số lượng khách -> không kiểm tra sức chứa.
      */
     public void datPhong(
             DatPhong datPhong,
             List<CtDatPhong> danhSachChiTiet,
+            String maNVXuLy) {
+        datPhong(datPhong, danhSachChiTiet, maNVXuLy, null);
+    }
+
+    /**
+     * NGHIỆP VỤ 2 CỐT LÕI CỦA TV2: TẠO ĐẶT PHÒNG
+     * Có quản lý Transaction (ACID), ghi nhận nhân viên xử lý, kiểm tra sức chứa
+     * phòng theo số lượng khách và tạo hóa đơn nháp.
+     */
+    public void datPhong(
+            DatPhong datPhong,
+            List<CtDatPhong> danhSachChiTiet,
+            String maNVXuLy,
             Integer soLuongKhach) {
 
-        // 1. Kiểm tra tính hợp lệ cơ bản của dữ liệu (không null, ngày hợp lệ, ghi chú <= 500 ký tự)
-        validateDatPhong(datPhong, danhSachChiTiet);
+        // 1. Kiểm tra tính hợp lệ cơ bản của dữ liệu (không null, có nhân viên, ngày hợp lệ, ghi chú <= 500 ký tự)
+        validateDatPhong(datPhong, danhSachChiTiet, maNVXuLy);
 
         if (soLuongKhach != null && soLuongKhach <= 0) {
             throw new IllegalArgumentException("Số lượng khách phải lớn hơn 0.");
@@ -61,6 +78,13 @@ public class DatPhongService {
         try {
             transactionManager.begin(); // Bắt đầu Transaction
             EntityManager em = transactionManager.getEntityManager();
+
+            // [master] Ghi nhận nhân viên đang đăng nhập là người xử lý đặt phòng
+            NhanVien nhanVienXuLy = nhanVienDAO.findById(em, maNVXuLy);
+            if (nhanVienXuLy == null) {
+                throw new IllegalArgumentException("Không tìm thấy nhân viên xử lý: " + maNVXuLy);
+            }
+            datPhong.setNhanVienXuLy(nhanVienXuLy);
 
             // 2. Kiểm tra xem khách hàng có tồn tại trong hệ thống hay không
             String maKH = datPhong.getKhachHang().getMaKH();
@@ -142,6 +166,9 @@ public class DatPhongService {
                 ctDatPhongDAO.save(em, chiTiet);
             }
 
+            // [master] Theo nghiệp vụ: 1 đặt phòng có đúng 1 hóa đơn, tạo ngay ở trạng thái NHAP.
+            taoHoaDonNhap(em, datPhong, danhSachChiTiet);
+
             // 7. Cập nhật trạng thái vật lý của phòng:
             // Chỉ đổi TRONG -> DA_DAT. Nếu khách đang ở (DANG_SU_DUNG), tuyệt đối không ghi đè trạng thái
             for (CtDatPhong chiTiet : danhSachChiTiet) {
@@ -213,6 +240,9 @@ public class DatPhongService {
      * NGHIỆP VỤ 2 CỦA TV2: HỦY ĐẶT PHÒNG
      * Có kiểm tra logic trạng thái và hoàn trả trạng thái phòng thông minh
      */
+    // TODO(TV2 - DISCUSS): Từ khi đặt phòng tự tạo hóa đơn nháp (master),
+    // cần thống nhất với nhóm trưởng/TV5: khi hủy đặt phòng thì hóa đơn nháp xử lý thế nào.
+    // Hiện tại hủy đặt phòng KHÔNG đụng tới hóa đơn.
     public void huyDatPhong(String maDatPhong) {
         TransactionManager transactionManager = new TransactionManager();
         try {
@@ -263,9 +293,13 @@ public class DatPhongService {
     /**
      * HÀM HỖ TRỢ VALIDATE DỮ LIỆU ĐẦU VÀO
      */
-    private void validateDatPhong(DatPhong datPhong, List<CtDatPhong> danhSachChiTiet) {
+    private void validateDatPhong(DatPhong datPhong, List<CtDatPhong> danhSachChiTiet, String maNVXuLy) {
         if (datPhong == null) {
             throw new IllegalArgumentException("Thông tin đặt phòng không được null.");
+        }
+        // [master] Bắt buộc có nhân viên đăng nhập tiếp nhận đặt phòng
+        if (maNVXuLy == null || maNVXuLy.isBlank()) {
+            throw new IllegalArgumentException("Phải xác định nhân viên tiếp nhận đặt phòng.");
         }
         if (datPhong.getKhachHang() == null) {
             throw new IllegalArgumentException("Đặt phòng phải có khách hàng.");
@@ -334,109 +368,243 @@ public class DatPhongService {
         }
     }
 
+    // =====================================================================
+    // CÁC HÀM DƯỚI ĐÂY LẤY NGUYÊN VĂN TỪ MASTER (nhóm trưởng / TV3 / TV5)
+    // =====================================================================
+
     /**
-     * XÁC NHẬN ĐẶT PHÒNG: Đổi trạng thái từ CHO_XAC_NHAN sang DA_XAC_NHAN
+     * XÁC NHẬN ĐẶT PHÒNG: Đổi trạng thái từ CHO_XAC_NHAN sang DA_XAC_NHAN, ghi nhận nhân viên
      */
-    public void xacNhanDatPhong(String maDatPhong) {
-        TransactionManager transactionManager = new TransactionManager();
+    public void xacNhanDatPhong(String maDatPhong, String maNVXuLy) {
+
+        TransactionManager transactionManager =
+                new TransactionManager();
+
         try {
             transactionManager.begin();
-            EntityManager em = transactionManager.getEntityManager();
 
-            DatPhong datPhong = datPhongDAO.findById(em, maDatPhong);
+            EntityManager em =
+                    transactionManager.getEntityManager();
+
+            DatPhong datPhong =
+                    datPhongDAO.findById(em, maDatPhong);
+
             if (datPhong == null) {
-                throw new IllegalArgumentException("Không tìm thấy đặt phòng: " + maDatPhong);
-            }
-            if (datPhong.getTrangThai() != TrangThaiDatPhong.CHO_XAC_NHAN) {
-                throw new IllegalStateException("Chỉ có đặt phòng đang chờ xác nhận mới được xác nhận.");
+                throw new IllegalArgumentException(
+                        "Không tìm thấy đặt phòng: "
+                                + maDatPhong
+                );
             }
 
+            if (datPhong.getTrangThai()
+                    != TrangThaiDatPhong.CHO_XAC_NHAN) {
+
+                throw new IllegalStateException(
+                        "Chỉ có đặt phòng đang chờ xác nhận "
+                                + "mới được xác nhận."
+                );
+            }
+
+            NhanVien nhanVien = nhanVienDAO.findById(em, maNVXuLy);
+            if (nhanVien == null) throw new IllegalArgumentException("Không tìm thấy nhân viên xử lý: " + maNVXuLy);
+            datPhong.setNhanVienXuLy(nhanVien);
             datPhong.setTrangThai(TrangThaiDatPhong.DA_XAC_NHAN);
+
             datPhongDAO.update(em, datPhong);
 
             transactionManager.commit();
+
         } catch (Exception e) {
+
             transactionManager.rollback();
             throw e;
+
         } finally {
+
             transactionManager.close();
         }
     }
 
     /**
-     * CHECK-IN (Thuộc luồng tiếp nhận của TV3, tạm thời để tại đây để chạy hệ thống)
-     * Đổi trạng thái đơn sang DANG_O và phòng sang DANG_SU_DUNG
+     * CHECK-IN (TV3) – ghi nhận nhân viên check-in
      */
-    public void checkIn(String maDatPhong) {
-        TransactionManager transactionManager = new TransactionManager();
+    public void checkIn(String maDatPhong, String maNVCheckIn) {
+
+        TransactionManager transactionManager =
+                new TransactionManager();
+
         try {
             transactionManager.begin();
-            EntityManager em = transactionManager.getEntityManager();
 
-            DatPhong datPhong = datPhongDAO.findById(em, maDatPhong);
+            EntityManager em =
+                    transactionManager.getEntityManager();
+
+            DatPhong datPhong =
+                    datPhongDAO.findById(em, maDatPhong);
+
             if (datPhong == null) {
-                throw new IllegalArgumentException("Không tìm thấy đặt phòng: " + maDatPhong);
-            }
-            if (datPhong.getTrangThai() != TrangThaiDatPhong.DA_XAC_NHAN) {
-                throw new IllegalStateException("Đặt phòng chưa được xác nhận hoặc không thể check-in.");
+                throw new IllegalArgumentException(
+                        "Không tìm thấy đặt phòng: "
+                                + maDatPhong
+                );
             }
 
-            for (CtDatPhong chiTiet : datPhong.getChiTietDatPhong()) {
+            if (datPhong.getTrangThai()
+                    != TrangThaiDatPhong.DA_XAC_NHAN) {
+
+                throw new IllegalStateException(
+                        "Đặt phòng chưa được xác nhận "
+                                + "hoặc không thể check-in."
+                );
+            }
+
+            for (CtDatPhong chiTiet
+                    : datPhong.getChiTietDatPhong()) {
+
                 Phong phong = chiTiet.getPhong();
+
                 if (phong == null) {
-                    throw new IllegalStateException("Chi tiết đặt phòng không có phòng.");
+                    throw new IllegalStateException(
+                            "Chi tiết đặt phòng không có phòng."
+                    );
                 }
-                phong.setTrangThai(TrangThaiPhong.DANG_SU_DUNG);
+
+                phong.setTrangThai(
+                        TrangThaiPhong.DANG_SU_DUNG
+                );
+
                 phongDAO.update(em, phong);
             }
 
+            NhanVien nhanVien = nhanVienDAO.findById(em, maNVCheckIn);
+            if (nhanVien == null) throw new IllegalArgumentException("Không tìm thấy nhân viên check-in: " + maNVCheckIn);
+            datPhong.setNhanVienCheckIn(nhanVien);
             datPhong.setTrangThai(TrangThaiDatPhong.DANG_O);
+
             datPhongDAO.update(em, datPhong);
 
             transactionManager.commit();
+
         } catch (Exception e) {
+
             transactionManager.rollback();
             throw e;
+
         } finally {
+
             transactionManager.close();
         }
     }
 
     /**
-     * CHECK-OUT (Thuộc luồng bàn giao của TV3 + TV5)
-     * Đổi trạng thái phòng sang TRONG và đơn sang DA_TRA_PHONG
+     * CHECK-OUT (TV3 + TV5) – ghi nhận nhân viên check-out
      */
-    public void checkOut(String maDatPhong) {
-        TransactionManager transactionManager = new TransactionManager();
+    public void checkOut(String maDatPhong, String maNVCheckOut) {
+
+        TransactionManager transactionManager =
+                new TransactionManager();
+
         try {
             transactionManager.begin();
-            EntityManager em = transactionManager.getEntityManager();
 
-            DatPhong datPhong = datPhongDAO.findById(em, maDatPhong);
+            EntityManager em =
+                    transactionManager.getEntityManager();
+
+            DatPhong datPhong =
+                    datPhongDAO.findById(em, maDatPhong);
+
             if (datPhong == null) {
-                throw new IllegalArgumentException("Không tìm thấy đặt phòng: " + maDatPhong);
-            }
-            if (datPhong.getTrangThai() != TrangThaiDatPhong.DANG_O) {
-                throw new IllegalStateException("Đặt phòng chưa ở trạng thái đang ở.");
+                throw new IllegalArgumentException(
+                        "Không tìm thấy đặt phòng: "
+                                + maDatPhong
+                );
             }
 
-            for (CtDatPhong chiTiet : datPhong.getChiTietDatPhong()) {
+            if (datPhong.getTrangThai()
+                    != TrangThaiDatPhong.DANG_O) {
+
+                throw new IllegalStateException(
+                        "Đặt phòng chưa ở trạng thái đang ở."
+                );
+            }
+
+            for (CtDatPhong chiTiet
+                    : datPhong.getChiTietDatPhong()) {
+
                 Phong phong = chiTiet.getPhong();
+
                 if (phong != null) {
-                    phong.setTrangThai(TrangThaiPhong.TRONG);
+                    phong.setTrangThai(
+                            TrangThaiPhong.TRONG
+                    );
+
                     phongDAO.update(em, phong);
                 }
             }
 
+            NhanVien nhanVien = nhanVienDAO.findById(em, maNVCheckOut);
+            if (nhanVien == null) throw new IllegalArgumentException("Không tìm thấy nhân viên check-out: " + maNVCheckOut);
+            datPhong.setNhanVienCheckOut(nhanVien);
             datPhong.setTrangThai(TrangThaiDatPhong.DA_TRA_PHONG);
+
             datPhongDAO.update(em, datPhong);
 
             transactionManager.commit();
+
         } catch (Exception e) {
+
             transactionManager.rollback();
             throw e;
+
         } finally {
+
             transactionManager.close();
         }
     }
+
+    /** Tương thích các test/code cũ; code web phải truyền mã nhân viên. */
+    public void datPhong(DatPhong datPhong, List<CtDatPhong> danhSachChiTiet) {
+        throw new IllegalArgumentException("Đặt phòng phải được thực hiện bởi nhân viên đăng nhập.");
+    }
+
+    public void xacNhanDatPhong(String maDatPhong) {
+        throw new IllegalArgumentException("Xác nhận đặt phòng phải có nhân viên đăng nhập.");
+    }
+
+    public void checkIn(String maDatPhong) {
+        throw new IllegalArgumentException("Check-in phải có nhân viên đăng nhập.");
+    }
+
+    public void checkOut(String maDatPhong) {
+        throw new IllegalArgumentException("Check-out phải có nhân viên đăng nhập.");
+    }
+
+    private void taoHoaDonNhap(EntityManager em, DatPhong datPhong, List<CtDatPhong> chiTiet) {
+        HoaDon hoaDon = new HoaDon();
+        hoaDon.setMaHoaDon(MaCodeGenerator.nextId(hoaDonDAO.findAll(em), "maHoaDon", "HD"));
+        hoaDon.setDatPhong(datPhong);
+        hoaDon.setNgayLap(java.time.LocalDateTime.now());
+        java.math.BigDecimal tongPhong = java.math.BigDecimal.ZERO;
+        Set<String> reservedCt = new HashSet<>();
+        List<CtHoaDon> existingCt = ctHoaDonDAO.findAll(em);
+        for (CtDatPhong ct : chiTiet) {
+            long soDem = java.time.temporal.ChronoUnit.DAYS.between(ct.getNgayNhan(), ct.getNgayTra());
+            java.math.BigDecimal tien = ct.getGiaPhong().multiply(java.math.BigDecimal.valueOf(soDem));
+            tongPhong = tongPhong.add(tien);
+            CtHoaDon line = new CtHoaDon();
+            line.setMaCtHoaDon(MaCodeGenerator.nextId(existingCt, "maCtHoaDon", "CTHD", reservedCt));
+            reservedCt.add(line.getMaCtHoaDon());
+            line.setHoaDon(hoaDon);
+            line.setTenKhoanThu("Tiền phòng " + (ct.getPhong() == null ? "" : ct.getPhong().getSoPhong()));
+            line.setSoLuong(1); line.setDonGia(ct.getGiaPhong()); line.setThanhTien(tien);
+            hoaDon.getChiTietHoaDon().add(line);
+        }
+        hoaDon.setTongTienPhong(tongPhong);
+        hoaDon.setTongTienDichVu(java.math.BigDecimal.ZERO);
+        hoaDon.setTongTien(tongPhong);
+        hoaDon.setTrangThai(TrangThaiHoaDon.NHAP);
+        hoaDonDAO.save(em, hoaDon);
+        for (CtHoaDon line : hoaDon.getChiTietHoaDon()) ctHoaDonDAO.save(em, line);
+    }
+
 }

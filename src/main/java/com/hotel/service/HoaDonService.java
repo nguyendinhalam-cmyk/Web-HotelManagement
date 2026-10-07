@@ -35,11 +35,9 @@ public class HoaDonService {
     }
 
     /**
-     * Tạo hóa đơn cho một lần trả phòng.
-     *
-     * Một DatPhong có thể có nhiều HoaDon,
-     * nên không kiểm tra "đã có hóa đơn hay chưa"
-     * để chặn việc tạo hóa đơn.
+     * Lập/cập nhật hóa đơn duy nhất của một DatPhong.
+     * Hóa đơn được tạo ngay khi đặt phòng; phương thức này chỉ
+     * phục vụ tương thích và sẽ cập nhật lại hóa đơn hiện có.
      */
     public HoaDon taoHoaDon(String maDatPhong) {
 
@@ -64,8 +62,8 @@ public class HoaDonService {
                 );
             }
 
-            if (datPhong.getTrangThai() != com.hotel.enums.TrangThaiDatPhong.DANG_O) {
-                throw new IllegalStateException("Chỉ có thể lập hóa đơn khi khách đang ở (DANG_O).");
+            if (datPhong.getTrangThai() == com.hotel.enums.TrangThaiDatPhong.DA_HUY) {
+                throw new IllegalStateException("Không thể lập hóa đơn cho đặt phòng đã hủy.");
             }
 
             if (datPhong.getChiTietDatPhong() == null
@@ -152,14 +150,25 @@ public class HoaDonService {
              * ==========================================
              */
 
-            HoaDon hoaDon = new HoaDon();
-            hoaDon.setMaHoaDon(MaCodeGenerator.nextId(hoaDonDAO.findAll(em), "maHoaDon", "HD"));
-
-            hoaDon.setDatPhong(datPhong);
-
-            hoaDon.setNgayLap(
-                    LocalDateTime.now()
-            );
+            List<HoaDon> hoaDons = hoaDonDAO.findByDatPhong(em, maDatPhong);
+            HoaDon hoaDon;
+            if (hoaDons.isEmpty()) {
+                hoaDon = new HoaDon();
+                hoaDon.setMaHoaDon(MaCodeGenerator.nextId(hoaDonDAO.findAll(em), "maHoaDon", "HD"));
+                hoaDon.setDatPhong(datPhong);
+                hoaDon.setNgayLap(LocalDateTime.now());
+                hoaDonDAO.save(em, hoaDon);
+            } else {
+                hoaDon = hoaDons.get(0);
+                if (hoaDon.getTrangThai() == TrangThaiHoaDon.DA_PHAT_HANH) {
+                    throw new IllegalStateException("Hóa đơn đã phát hành, không thể tạo lại.");
+                }
+                for (CtHoaDon old : ctHoaDonDAO.findAll(em)) {
+                    if (old.getHoaDon() != null && hoaDon.getMaHoaDon().equals(old.getHoaDon().getMaHoaDon())) {
+                        ctHoaDonDAO.delete(em, old);
+                    }
+                }
+            }
 
             hoaDon.setTongTienPhong(tongTienPhong);
             hoaDon.setTongTienDichVu(tongTienDichVu);
@@ -169,7 +178,7 @@ public class HoaDonService {
                     TrangThaiHoaDon.NHAP
             );
 
-            hoaDonDAO.save(em, hoaDon);
+            hoaDonDAO.update(em, hoaDon);
 
             /*
              * ==========================================

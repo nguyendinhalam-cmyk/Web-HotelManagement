@@ -51,7 +51,7 @@ public class KhachHangService {
     }
 
     private void validate(KhachHang x) {
-        if (x == null || blank(x.getHoTen()) || blank(x.getSoDienThoai()) || blank(x.getMatKhauHash())) throw new IllegalArgumentException("Thông tin khách hàng không hợp lệ.");
+        if (x == null || blank(x.getHoTen()) || blank(x.getSoDienThoai())) throw new IllegalArgumentException("Thông tin khách hàng không hợp lệ.");
     }
 
     private void ensureUnique(EntityManager em, KhachHang x, String currentId) {

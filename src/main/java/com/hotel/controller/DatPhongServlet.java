@@ -110,8 +110,11 @@ public class DatPhongServlet extends HttpServlet {
             // 4. Ánh xạ DTO sang thực thể DatPhong cùng danh sách ChiTietDatPhong
             DatPhong datPhong = DatPhongMapper.toEntity(dto, khachHang, rooms);
 
-            // 5. Gọi Service thực thi lưu DB; truyền thêm soLuongKhach để kiểm tra tổng sức chứa các phòng
-            datPhongService.datPhong(datPhong, datPhong.getChiTietDatPhong(), dto.getSoLuongKhach());
+            // 5. Gọi Service thực thi lưu DB:
+            //    - [master] truyền mã nhân viên đang đăng nhập (nhân viên xử lý)
+            //    - [TV2] truyền soLuongKhach để kiểm tra tổng sức chứa các phòng
+            datPhongService.datPhong(datPhong, datPhong.getChiTietDatPhong(),
+                    currentMaNV(request), dto.getSoLuongKhach());
 
             // 6. Theo chuẩn PRG (Post/Redirect/Get): Chuyển hướng về trang danh sách kèm cờ success và mã mới tạo
             response.sendRedirect(request.getContextPath()
@@ -192,7 +195,7 @@ public class DatPhongServlet extends HttpServlet {
                 LocalDate ngayNhan = LocalDate.parse(ngayNhanParam);
                 LocalDate ngayTra = LocalDate.parse(ngayTraParam);
 
-                // Lấy các tham số lọc bổ sung (loại phòng, khoảng giá, tình trạng hiện tại của phòng)
+                // Lấy tham số lọc bổ sung (loại phòng)
                 String maLoaiPhong = trimToNull(request.getParameter("maLoaiPhong"));
 
                 // Tìm phòng không bị trùng lịch VÀ thỏa mãn các tiêu chí lọc
@@ -232,9 +235,9 @@ public class DatPhongServlet extends HttpServlet {
         request.getRequestDispatcher("/dat-phong/chi-tiet.jsp").forward(request, response);
     }
 
-    // Chuyển trạng thái đơn sang 'DA_XAC_NHAN'
+    // Chuyển trạng thái đơn sang 'DA_XAC_NHAN' ([master] ghi nhận nhân viên xác nhận)
     private void confirm(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        datPhongService.xacNhanDatPhong(required(request, "ma"));
+        datPhongService.xacNhanDatPhong(required(request, "ma"), currentMaNV(request));
         response.sendRedirect(request.getContextPath() + "/dat-phong?action=list&success=confirmed");
     }
 
@@ -244,15 +247,15 @@ public class DatPhongServlet extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/dat-phong?action=list&success=cancelled");
     }
 
-    // Nhận phòng (TV3 phụ trách)
+    // Nhận phòng (TV3 phụ trách) – [master] ghi nhận nhân viên check-in
     private void checkIn(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        datPhongService.checkIn(required(request, "ma"));
+        datPhongService.checkIn(required(request, "ma"), currentMaNV(request));
         response.sendRedirect(request.getContextPath() + "/dat-phong?action=list&success=checkin");
     }
 
-    // Trả phòng và lập hóa đơn (TV3 và TV5 phụ trách)
+    // Trả phòng và lập hóa đơn (TV3 và TV5 phụ trách) – [master] ghi nhận nhân viên check-out
     private void checkOut(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        var hoaDon = checkoutService.checkout(required(request, "ma"));
+        var hoaDon = checkoutService.checkout(required(request, "ma"), currentMaNV(request));
         response.sendRedirect(request.getContextPath()
                 + "/hoa-don?action=detail&id=" + hoaDon.getMaHoaDon() + "&success=checkout");
     }
@@ -312,7 +315,18 @@ public class DatPhongServlet extends HttpServlet {
         dto.setTenKhachHang(d.getKhachHang().getHoTen());
         dto.setTrangThai(d.getTrangThai());
         dto.setGhiChu(d.getGhiChu());
+        // [master] Mã nhân viên xử lý / check-in / check-out
+        dto.setMaNVXuLy(d.getNhanVienXuLy() == null ? null : d.getNhanVienXuLy().getMaNV());
+        dto.setMaNVCheckIn(d.getNhanVienCheckIn() == null ? null : d.getNhanVienCheckIn().getMaNV());
+        dto.setMaNVCheckOut(d.getNhanVienCheckOut() == null ? null : d.getNhanVienCheckOut().getMaNV());
         return dto;
+    }
+
+    // [master] Lấy mã nhân viên đang đăng nhập từ session
+    private String currentMaNV(HttpServletRequest request) {
+        Object value = request.getSession(false) == null ? null : request.getSession(false).getAttribute("maNV");
+        if (value == null || value.toString().isBlank()) throw new IllegalStateException("Phiên đăng nhập nhân viên đã hết hạn.");
+        return value.toString();
     }
 
     // Đọc parameter bắt buộc; nếu rỗng hoặc null thì ném ngoại lệ

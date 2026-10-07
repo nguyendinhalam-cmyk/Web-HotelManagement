@@ -29,14 +29,8 @@ public class NhanVien {
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(name = "matKhauHash", nullable = false, length = 255)
-    private String matKhauHash;
-
     @Column(name = "diaChi", length = 255)
     private String diaChi;
-
-    @Column(name = "chucVu", nullable = false, length = 20)
-    private String chucVu;
 
     public NhanVien() {
     }
@@ -89,14 +83,6 @@ public class NhanVien {
         this.email = email;
     }
 
-    public String getMatKhauHash() {
-        return matKhauHash;
-    }
-
-    public void setMatKhauHash(String matKhauHash) {
-        this.matKhauHash = matKhauHash;
-    }
-
     public String getDiaChi() {
         return diaChi;
     }
@@ -105,11 +91,17 @@ public class NhanVien {
         this.diaChi = diaChi;
     }
 
-    public String getChucVu() {
-        return chucVu;
+    @OneToOne(mappedBy = "nhanVien", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private TaiKhoan taiKhoan;
+
+    public TaiKhoan getTaiKhoan() {
+        return taiKhoan;
     }
 
-    public void setChucVu(String chucVu) {
-        this.chucVu = chucVu;
+    public void setTaiKhoan(TaiKhoan taiKhoan) {
+        this.taiKhoan = taiKhoan;
+        if (taiKhoan != null && taiKhoan.getNhanVien() != this) {
+            taiKhoan.setNhanVien(this);
+        }
     }
 }

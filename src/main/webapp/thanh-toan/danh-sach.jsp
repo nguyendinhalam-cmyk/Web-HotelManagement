@@ -12,6 +12,7 @@
     </style>
 </head>
 <body>
+<a href="${pageContext.request.contextPath}/logout">Đăng xuất</a>
 <h1>Danh sách thanh toán</h1>
 <p><a href="${pageContext.request.contextPath}/thanh-toan?action=new">+ Tạo thanh toán</a></p>
 <c:if test="${not empty param.success}"><p class="success">Thao tác thành công.</p></c:if>

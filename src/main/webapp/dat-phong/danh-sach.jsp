@@ -15,6 +15,7 @@
     </style>
 </head>
 <body>
+<a href="${pageContext.request.contextPath}/logout">Đăng xuất</a>
 <h1>Danh sách đặt phòng</h1>
 <a href="${pageContext.request.contextPath}/">Trang chủ</a>
 <a href="${pageContext.request.contextPath}/dat-phong?action=new">+ Tạo đặt phòng</a>
@@ -51,7 +52,7 @@
 <table>
     <thead>
     <tr>
-        <th>Mã đặt phòng</th><th>Khách hàng</th><th>Ngày đặt</th><th>Trạng thái</th><th>Ghi chú</th><th>Thao tác</th>
+        <th>Mã đặt phòng</th><th>Khách hàng</th><th>Nhân viên xử lý</th><th>Ngày đặt</th><th>Trạng thái</th><th>Ghi chú</th><th>Thao tác</th>
     </tr>
     </thead>
     <tbody>
@@ -59,6 +60,7 @@
         <tr>
             <td>${item.maDatPhong}</td>
             <td>${item.maKH} - ${item.tenKhachHang}</td>
+            <td>${item.maNVXuLy}</td>
             <td>${item.ngayDat}</td>
             <%-- Hiển thị tiếng Việt; giá trị enum giữ nguyên --%>
             <td>
@@ -93,7 +95,7 @@
         </tr>
     </c:forEach>
     <c:if test="${empty items}">
-        <tr><td colspan="6">Chưa có dữ liệu.</td></tr>
+        <tr><td colspan="7">Chưa có dữ liệu.</td></tr>
     </c:if>
     </tbody>
 </table>

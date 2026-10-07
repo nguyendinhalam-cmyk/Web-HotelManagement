@@ -6,6 +6,7 @@
     <title>Quản lý khách sạn</title>
 </head>
 <body>
+<a href="${pageContext.request.contextPath}/logout">Đăng xuất</a>
 <h1>Quản lý khách sạn</h1>
 <p>Backend MVC đã sẵn sàng cho module đặt phòng.</p>
 <ul>

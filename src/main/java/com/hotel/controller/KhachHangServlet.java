@@ -20,7 +20,7 @@ public class KhachHangServlet extends HttpServlet {
     }
     @Override protected void doPost(HttpServletRequest req,HttpServletResponse resp)throws ServletException,IOException{
         req.setCharacterEncoding("UTF-8");
-        try { KhachHang x=new KhachHang(); x.setMaKH(trim(req.getParameter("maKH"))); x.setHoTen(required(req,"hoTen")); x.setNgaySinh(date(req.getParameter("ngaySinh"))); x.setGioiTinh(enumVal(GioiTinh.class,req.getParameter("gioiTinh"))); x.setSoDienThoai(req.getParameter("soDienThoai")); x.setEmail(req.getParameter("email")); x.setMatKhauHash(req.getParameter("matKhauHash")); x.setDiaChi(req.getParameter("diaChi"));
+        try { KhachHang x=new KhachHang(); x.setMaKH(trim(req.getParameter("maKH"))); x.setHoTen(required(req,"hoTen")); x.setNgaySinh(date(req.getParameter("ngaySinh"))); x.setGioiTinh(enumVal(GioiTinh.class,req.getParameter("gioiTinh"))); x.setSoDienThoai(req.getParameter("soDienThoai")); x.setEmail(req.getParameter("email")); x.setDiaChi(req.getParameter("diaChi"));
             if(blank(x.getMaKH())) service.them(x); else service.capNhat(x); resp.sendRedirect(req.getContextPath()+"/khach-hang?action=list&success=saved"); }
         catch(IllegalArgumentException|IllegalStateException e){req.setAttribute("error",e.getMessage()); list(req,resp);}
     }
