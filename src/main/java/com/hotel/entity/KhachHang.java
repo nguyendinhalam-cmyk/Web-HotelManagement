@@ -18,6 +18,9 @@ public class KhachHang {
     @Column(name = "hoTen", nullable = false, length = 100)
     private String hoTen;
 
+    @Column(name = "cccd", length = 12, unique = true)
+    private String cccd;
+
     @Column(name = "ngaySinh")
     private LocalDate ngaySinh;
 
@@ -54,6 +57,14 @@ public class KhachHang {
 
     public void setHoTen(String hoTen) {
         this.hoTen = hoTen;
+    }
+
+    public String getCccd() {
+        return cccd;
+    }
+
+    public void setCccd(String cccd) {
+        this.cccd = cccd;
     }
 
     public LocalDate getNgaySinh() {
@@ -104,3 +115,4 @@ public class KhachHang {
         this.danhSachDatPhong = danhSachDatPhong;
     }
 }
+

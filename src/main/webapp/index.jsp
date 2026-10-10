@@ -12,6 +12,8 @@
 <ul>
     <li><a href="${pageContext.request.contextPath}/dat-phong?action=list">Danh sách đặt phòng</a></li>
     <li><a href="${pageContext.request.contextPath}/dat-phong?action=new">Tạo đặt phòng</a></li>
+    <li><a href="${pageContext.request.contextPath}/khach-hang">Khách hàng</a></li>
 </ul>
 </body>
 </html>
+

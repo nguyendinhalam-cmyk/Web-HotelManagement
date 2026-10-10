@@ -17,6 +17,7 @@ import com.hotel.entity.Phong;
 import com.hotel.enums.TrangThaiDatPhong;
 import com.hotel.enums.TrangThaiPhong;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -425,8 +426,9 @@ public class DatPhongService {
         }
     }
 
-    /**
-     * CHECK-IN (TV3) – ghi nhận nhân viên check-in
+    /*
+     * CHECK-IN (TV3)
+     * Ghi nhận nhân viên check-in và cập nhật trạng thái phòng.
      */
     public void checkIn(String maDatPhong, String maNVCheckIn) {
 
@@ -439,22 +441,40 @@ public class DatPhongService {
             EntityManager em =
                     transactionManager.getEntityManager();
 
-            DatPhong datPhong =
-                    datPhongDAO.findById(em, maDatPhong);
+            DatPhong datPhong = em.find(
+                    DatPhong.class,
+                    maDatPhong,
+                    LockModeType.PESSIMISTIC_WRITE
+            );
 
             if (datPhong == null) {
                 throw new IllegalArgumentException(
-                        "Không tìm thấy đặt phòng: "
-                                + maDatPhong
+                        "Không tìm thấy đặt phòng: " + maDatPhong
                 );
             }
 
             if (datPhong.getTrangThai()
                     != TrangThaiDatPhong.DA_XAC_NHAN) {
-
                 throw new IllegalStateException(
                         "Đặt phòng chưa được xác nhận "
                                 + "hoặc không thể check-in."
+                );
+            }
+
+            NhanVien nhanVien =
+                    nhanVienDAO.findById(em, maNVCheckIn);
+
+            if (nhanVien == null) {
+                throw new IllegalArgumentException(
+                        "Không tìm thấy nhân viên check-in: "
+                                + maNVCheckIn
+                );
+            }
+
+            if (datPhong.getChiTietDatPhong() == null
+                    || datPhong.getChiTietDatPhong().isEmpty()) {
+                throw new IllegalStateException(
+                        "Đặt phòng không có chi tiết phòng."
                 );
             }
 
@@ -469,35 +489,54 @@ public class DatPhongService {
                     );
                 }
 
-                phong.setTrangThai(
+                Phong phongKhoa = em.find(
+                        Phong.class,
+                        phong.getMaPhong(),
+                        LockModeType.PESSIMISTIC_WRITE
+                );
+
+                if (phongKhoa == null) {
+                    throw new IllegalStateException(
+                            "Không tìm thấy phòng: "
+                                    + phong.getMaPhong()
+                    );
+                }
+
+                if (phongKhoa.getTrangThai()
+                        != TrangThaiPhong.DA_DAT) {
+                    throw new IllegalStateException(
+                            "Phòng " + phongKhoa.getMaPhong()
+                                    + " không ở trạng thái đã đặt."
+                    );
+                }
+
+                phongKhoa.setTrangThai(
                         TrangThaiPhong.DANG_SU_DUNG
                 );
 
-                phongDAO.update(em, phong);
+                phongDAO.update(em, phongKhoa);
             }
 
-            NhanVien nhanVien = nhanVienDAO.findById(em, maNVCheckIn);
-            if (nhanVien == null) throw new IllegalArgumentException("Không tìm thấy nhân viên check-in: " + maNVCheckIn);
             datPhong.setNhanVienCheckIn(nhanVien);
-            datPhong.setTrangThai(TrangThaiDatPhong.DANG_O);
+            datPhong.setTrangThai(
+                    TrangThaiDatPhong.DANG_O
+            );
 
             datPhongDAO.update(em, datPhong);
 
             transactionManager.commit();
 
         } catch (Exception e) {
-
             transactionManager.rollback();
             throw e;
 
         } finally {
-
             transactionManager.close();
         }
     }
-
-    /**
-     * CHECK-OUT (TV3 + TV5) – ghi nhận nhân viên check-out
+    /*
+     * CHECK-OUT (TV3 + TV5)
+     * Ghi nhận nhân viên check-out và cập nhật trạng thái đặt phòng, phòng.
      */
     public void checkOut(String maDatPhong, String maNVCheckOut) {
 
@@ -510,21 +549,39 @@ public class DatPhongService {
             EntityManager em =
                     transactionManager.getEntityManager();
 
-            DatPhong datPhong =
-                    datPhongDAO.findById(em, maDatPhong);
+            DatPhong datPhong = em.find(
+                    DatPhong.class,
+                    maDatPhong,
+                    LockModeType.PESSIMISTIC_WRITE
+            );
 
             if (datPhong == null) {
                 throw new IllegalArgumentException(
-                        "Không tìm thấy đặt phòng: "
-                                + maDatPhong
+                        "Không tìm thấy đặt phòng: " + maDatPhong
                 );
             }
 
             if (datPhong.getTrangThai()
                     != TrangThaiDatPhong.DANG_O) {
-
                 throw new IllegalStateException(
                         "Đặt phòng chưa ở trạng thái đang ở."
+                );
+            }
+
+            NhanVien nhanVien =
+                    nhanVienDAO.findById(em, maNVCheckOut);
+
+            if (nhanVien == null) {
+                throw new IllegalArgumentException(
+                        "Không tìm thấy nhân viên check-out: "
+                                + maNVCheckOut
+                );
+            }
+
+            if (datPhong.getChiTietDatPhong() == null
+                    || datPhong.getChiTietDatPhong().isEmpty()) {
+                throw new IllegalStateException(
+                        "Đặt phòng không có chi tiết phòng."
                 );
             }
 
@@ -533,31 +590,51 @@ public class DatPhongService {
 
                 Phong phong = chiTiet.getPhong();
 
-                if (phong != null) {
-                    phong.setTrangThai(
-                            TrangThaiPhong.TRONG
+                if (phong == null) {
+                    throw new IllegalStateException(
+                            "Không tìm thấy thông tin phòng."
                     );
-
-                    phongDAO.update(em, phong);
                 }
+
+                Phong phongKhoa = em.find(
+                        Phong.class,
+                        phong.getMaPhong(),
+                        LockModeType.PESSIMISTIC_WRITE
+                );
+
+                if (phongKhoa == null) {
+                    throw new IllegalStateException(
+                            "Không tìm thấy phòng: "
+                                    + phong.getMaPhong()
+                    );
+                }
+
+                if (phongKhoa.getTrangThai()
+                        != TrangThaiPhong.DANG_SU_DUNG) {
+                    throw new IllegalStateException(
+                            "Phòng " + phongKhoa.getMaPhong()
+                                    + " không ở trạng thái đang sử dụng."
+                    );
+                }
+
+                phongKhoa.setTrangThai(TrangThaiPhong.TRONG);
+                phongDAO.update(em, phongKhoa);
             }
 
-            NhanVien nhanVien = nhanVienDAO.findById(em, maNVCheckOut);
-            if (nhanVien == null) throw new IllegalArgumentException("Không tìm thấy nhân viên check-out: " + maNVCheckOut);
             datPhong.setNhanVienCheckOut(nhanVien);
-            datPhong.setTrangThai(TrangThaiDatPhong.DA_TRA_PHONG);
+            datPhong.setTrangThai(
+                    TrangThaiDatPhong.DA_TRA_PHONG
+            );
 
             datPhongDAO.update(em, datPhong);
 
             transactionManager.commit();
 
         } catch (Exception e) {
-
             transactionManager.rollback();
             throw e;
 
         } finally {
-
             transactionManager.close();
         }
     }
